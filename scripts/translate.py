@@ -1,0 +1,210 @@
+"""German -> English translation of the swisstopo SMV25 / DKM25 QGIS style names."""
+import re
+
+LAYERS = {
+    "NAME_PKT_ANNO": "Name point annotation",
+    "STRASSE_PKT_ANNO": "Road point annotation",
+    "STRASSE_ANNO": "Road annotation",
+    "OEV_PKT_ANNO": "Public transport point annotation",
+    "OEV_LIN_ANNO": "Public transport line annotation",
+    "EISENBAHN_ANNO": "Railway annotation",
+    "GEBAEUDE_ANNO": "Building annotation",
+    "BAUTE_PKT_ANNO": "Structure point annotation",
+    "BAUTE_LIN_ANNO": "Structure line annotation",
+    "BAUTE_PLY_ANNO": "Structure polygon annotation",
+    "SIEDLUNGSNAME_ANNO": "Settlement name annotation",
+    "GELAENDENAME_ANNO": "Terrain name annotation",
+    "GEBIETSNAME_ANNO": "Area name annotation",
+    "FLURNAME_ANNO": "Locality name annotation",
+    "GEWAESSER_LIN_ANNO": "Watercourse annotation",
+    "GEWAESSER_PLY_ANNO": "Water body annotation",
+    "HOEHENKOTE_ANNO": "Spot height annotation",
+    "HOEHENKURVE_ANNO": "Contour annotation",
+    "MORPH_KLEINFORM_PKT_ANNO": "Landform point annotation",
+    "MORPH_KLEINFORM_LIN_ANNO": "Landform line annotation",
+    "SCHUTZGEBIET_ANNO": "Protected area annotation",
+    "KANTONSGEBIET_ANNO": "Canton annotation",
+    "LANDESGEBIET_ANNO": "Country annotation",
+    "HOHEITSGEBIET_ANNO": "Municipality annotation",
+    "FREIZEITAREAL_ANNO": "Recreation area annotation",
+    "NUTZUNGSAREAL_ANNO": "Land use area annotation",
+    "VERKEHRSAREAL_ANNO": "Traffic area annotation",
+    "KOORDINATENNETZLINIE": "Grid lines",
+    "STRASSE_PKT": "Road points",
+    "OEV_PKT": "Public transport points",
+    "VERKEHRSAREAL_SYMB": "Traffic area symbols",
+    "BAUTE_PKT": "Structure points",
+    "GEBAEUDE_SYMB": "Building symbols",
+    "FREIZEITAREAL_SYMB": "Recreation area symbols",
+    "NUTZUNGSAREAL_SYMB": "Land use area symbols",
+    "EINZELBAUM": "Single trees",
+    "NAME_PKT": "Name points",
+    "HOEHENKOTE": "Spot heights",
+    "MORPH_KLEINFORM_PKT": "Landform points",
+    "BAUTE_LIN": "Structure lines",
+    "GEBAEUDE_TOP": "Buildings (top)",
+    "OEV_LIN": "Public transport lines",
+    "BODENBEDECKUNG_SYMB": "Land cover symbols",
+    "EISENBAHN": "Railways",
+    "STRASSE": "Roads",
+    "EISENBAHN_TUNNEL": "Railway tunnels",
+    "STAUDAMM_SYMB": "Dam symbols",
+    "GEBAEUDE": "Buildings",
+    "MORPH_KLEINFORM_LIN": "Landform lines",
+    "BOESCHUNG_SYMB": "Embankment symbols",
+    "SCHUTZGEBIET": "Protected areas",
+    "HOHEITSGRENZE": "Administrative boundaries",
+    "GRENZBAND": "Boundary bands",
+    "TIEFENLINIE": "Depth / ice contours",
+    "GEWAESSER_PLY": "Water bodies",
+    "GEWAESSER_LIN": "Watercourses",
+    "BAUTE_PLY": "Structure polygons",
+    "VERKEHRSAREAL": "Traffic areas",
+    "HOEHENKURVE": "Contours",
+    "FREIZEITAREAL": "Recreation areas",
+    "NUTZUNGSAREAL": "Land use areas",
+    "BODENBEDECKUNG": "Land cover",
+    # rasters
+    "FELS": "Rock (raster)", "GEROELL": "Scree (raster)", "GLETSCHER": "Glacier (raster)",
+    "KOMB": "Relief composite (raster)",
+}
+
+EXACT = {
+    "Antenne auf Aussichtsturm": "Antenna on lookout tower", "Antenne gross": "Antenna (large)",
+    "Antenne klein": "Antenna (small)", "Aussichtsturm": "Lookout tower", "Autofähre": "Car ferry",
+    "Bahnhof auf Strasse": "Station on street", "Bahnhof unterirdisch": "Station (underground)",
+    "Bahnhof oberirdisch (Normalspur, Einspur/Schmalspur)": "Station (standard gauge, single track/narrow gauge)",
+    "Bahnhof oberirdisch (Normalspur, Mehrspur)": "Station (standard gauge, multiple track)",
+    "Baumschule": "Tree nursery", "Bezirksgrenze": "District boundary", "Bildstock": "Wayside shrine",
+    "Bisse Brücke": "Irrigation channel bridge", "Bisse/Suone": "Irrigation channel (bisse)",
+    "Bisse Suone": "Irrigation channel (bisse)",
+    "Bobbahn": "Bobsleigh run", "Brunnen": "Fountain / well",
+    "Brücke gedeckt/Galerie (andere Spuren)": "Covered bridge/gallery (other gauges)",
+    "Brücke gedeckt/Galerie (Normalspur, Mehrspur)": "Covered bridge/gallery (standard gauge, multiple track)",
+    "Brücke nicht-gedeckt": "Bridge (uncovered)", "Böschung": "Embankment", "Böschung (Gletscher)": "Embankment (glacier)",
+    "Campingplatzareal": "Campground", "Denkmal": "Monument", "Deponieareal": "Landfill",
+    "Doline blau": "Sinkhole (blue)", "Doline braun": "Sinkhole (brown)", "Doline schwarz": "Sinkhole (black)",
+    "Druckleitung": "Penstock", "Druckleitung Brücke": "Penstock bridge",
+    "Druckleitung Freispiegelstollen": "Penstock (gravity tunnel)", "Durchfahrtssperre": "Road barrier",
+    "Einzelbaum": "Single tree", "Fahrareal privat": "Private driving area",
+    "Felsblock 1": "Boulder 1", "Felsblock 2": "Boulder 2", "Felsblock 3": "Boulder 3",
+    "Felsblock 4": "Boulder 4", "Felsblock 5": "Boulder 5", "Felsblock mit Hoehenkote": "Boulder with spot height",
+    "Feuchtgebiet": "Wetland", "Flugdach (offenes Gebäude)": "Canopy (open building)", "Fluss": "River",
+    "Freizeitanlagenareal": "Leisure facility", "Friedhof": "Cemetery", "Förderband": "Conveyor belt",
+    "Gastgewerbe abgelegen (Fahne links)": "Remote inn/hut (flag left)",
+    "Gastgewerbe abgelegen (Fahne rechts)": "Remote inn/hut (flag right)",
+    "Gebaeude Camping Standplatz": "Camping pitch building", "Gebäude": "Building",
+    "Gehölzskelette": "Hedgerow / tree line", "Geländekote": "Terrain spot height",
+    "Gemeindegrenze": "Municipal boundary", "Geröll (linear)": "Scree (linear)",
+    "Gewässerverbauung": "River training works", "Gipfelkreuz": "Summit cross",
+    "Gleise auf Strasse (0.1)": "Tracks on street (0.1)", "Gleise auf Strasse (0.22)": "Tracks on street (0.22)",
+    "Golfplatzareal": "Golf course", "Gondel-/Sesselbahn": "Gondola / chairlift", "Graspiste": "Grass runway",
+    "Grotte Hoehle": "Grotto / cave", "Hafensteg": "Harbour jetty", "Haltestelle auf Strasse": "Tram stop on street",
+    "Hartbelagpiste": "Sealed runway", "Heliport": "Heliport", "Historische Baute": "Historic structure",
+    "Hochhaus": "High-rise", "Hochkamin": "Tall chimney", "Hochspannungsleitung": "Power line (high voltage)",
+    "Höhenkote": "Spot height", "Kantonsgrenze": "Canton boundary", "Kapelle": "Chapel",
+    "Koordinatennetzlinie": "Grid line", "Kühlturm": "Cooling tower",
+    "Landesgrenze Drittstaaten": "National boundary (third countries)", "Landesgrenze Schweiz": "National boundary",
+    "Landesgrenzstein": "Boundary stone", "Laufbahn/Mauer (0.14)": "Running track/wall (0.14)",
+    "Laufbahn/Mauer (0.2)": "Running track/wall (0.2)", "Lift": "Lift", "Luftseilbahn": "Aerial cableway",
+    "Markierte Spur": "Marked lane", "Mauer (gross)": "Wall (large)", "Mauerreste": "Wall remains / ruins",
+    "Nationalpark": "National park",
+    "Normalkurve (blau)": "Contour (blue)", "Normalkurve (braun)": "Contour (brown)", "Normalkurve (schwarz)": "Contour (black)",
+    "Zählkurve (blau)": "Index contour (blue)", "Zählkurve (braun)": "Index contour (brown)", "Zählkurve (schwarz)": "Index contour (black)",
+    "Zwischenkurve (blau)": "Supplementary contour (blue)", "Zwischenkurve (braun)": "Supplementary contour (brown)",
+    "Zwischenkurve (schwarz)": "Supplementary contour (black)",
+    "Obstanlage": "Orchard", "Oeffentliches Parkareal": "Public park", "Parkplatzareal oeffentlich": "Car park (public)",
+    "Parkplatzareal privat": "Car park (private)", "Parkplatzeinfahrt (butt)": "Car park entrance (butt)",
+    "Parkplatzeinfahrt (round)": "Car park entrance (round)", "Parkplatzeinfahrt k Symbol": "Car park entrance (no symbol)",
+    "Personenfähre (mit Seil)": "Passenger ferry (cable)", "Personenfähre (ohne Seil)": "Passenger ferry (no cable)",
+    "Pferderennbahn": "Horse racetrack", "Platz k Symbol": "Square (no symbol)", "Quelle": "Spring",
+    "Rastplatzareal": "Rest area", "Reben": "Vineyard", "Regionsgrenze": "Regional boundary",
+    "Rodelbahn": "Toboggan run", "Rollweg": "Taxiway", "Sakraler Turm": "Church tower",
+    "Scheibenstand": "Rifle range targets", "Schiffshaltestelle": "Boat landing", "Schleuse": "Lock",
+    "Schrebergartenareal": "Allotment gardens", "Schusslinie": "Firing line", "Schwimmbecken": "Swimming pool",
+    "See (gross)": "Lake (large)", "See (klein)": "Lake (small)", "See (wechselnder Wasserstand)": "Lake (variable level)",
+    "Senke (blau)": "Depression (blue)", "Senke (braun)": "Depression (brown)", "Senke (schwarz)": "Depression (black)",
+    "Skilift": "Ski tow", "Skisprungschanze": "Ski jump", "Skisprungschanze (Auslauf)": "Ski jump (outrun)",
+    "Solarpanel": "Solar panels", "Spitalareal": "Hospital grounds", "Sportplatz": "Sports field",
+    "Staudamm": "Dam (embankment)", "Staumauer": "Dam wall", "Steg": "Footbridge / boardwalk",
+    "Steinböschung": "Rock embankment", "Transportseil": "Material cableway", "Treibhaus": "Greenhouse",
+    "Treppe (kurz)": "Steps (short)", "Triangulationspyramide": "Trig beacon", "Trockenmauer": "Dry-stone wall",
+    "Trockenrinne": "Dry channel", "Trockenrinne Brücke": "Dry channel bridge", "Tunnel Gleis": "Track in tunnel",
+    "Tunnel k Symbol": "Tunnel (no symbol)", "Turm": "Tower", "Unterwerkareal": "Substation",
+    "Unterwerkareal gross": "Substation (large)", "Unterwerkareal klein": "Substation (small)",
+    "Unterwerkareal mittel": "Substation (medium)", "Verkehrsflaeche": "Traffic area",
+    "Verkehrsflaeche Autobahn": "Traffic area (motorway)", "Verkehrsflaeche Durchgang": "Traffic area (through road)",
+    "Verkehrsflaeche Verbindung": "Traffic area (connecting road)", "Verladestation": "Loading station",
+    "Wald": "Forest", "Wasserbecken": "Water basin", "Wasserturm": "Water tower",
+    "Wasserversorgung": "Water supply", "Wehr": "Weir", "Windturbine": "Wind turbine",
+    "kein Symbol": "no symbol", "k Symbol": "no symbol",
+    "Gebüschwald (0.25)": "Scrub (0.25)", "Gebüschwald (0.3)": "Scrub (0.3)",
+    "Gebüschwald (0.38)": "Scrub (0.38)", "Gebüschwald (0.42)": "Scrub (0.42)",
+    "Gehoelzpunkt (0.25)": "Shrub point (0.25)", "Gehoelzpunkt (0.3)": "Shrub point (0.3)",
+    "Gehoelzpunkt (0.38)": "Shrub point (0.38)", "Gehoelzpunkt (0.42)": "Shrub point (0.42)",
+    "offener Wald (0.38)": "Open forest (0.38)", "offener Wald (0.4)": "Open forest (0.4)",
+    "offener Wald (0.44)": "Open forest (0.44)",
+}
+
+# ordered token replacements for compositional names (roads, rail, watercourses)
+TOKENS = [
+    (r"Autostrasse Einfahrt/Raststaette", "Expressway entry/rest area"),
+    (r"Autostrasse/Zufahrt", "Expressway/access road"),
+    (r"Autostrasse", "Expressway"),
+    (r"Autobahn", "Motorway"),
+    (r"Durchgangsstrasse", "Through road"),
+    (r"Verbindungsstrasse", "Connecting road"),
+    (r"Ein-/Ausfahrt", "On/off ramp"),
+    (r"^Strasse", "Road"),
+    (r"^Weg", "Track"),
+    (r"Fliessgewässer Brücke", "Stream bridge"),
+    (r"Fliessgewässer", "Stream"),
+    (r"^Wasserfall", "Waterfall"),
+    (r"Anschlussgleis", "Siding"),
+    (r"Normalspur", "Standard gauge"),
+    (r"Schmalspur", "Narrow gauge"),
+    (r"Einspur", "single track"),
+    (r"Mehrspur", "multiple track"),
+    (r"richtungsgetrennt", "dual carriageway"),
+    (r"Naturbelag", "unsealed"),
+    (r"Hartbelag", "sealed"),
+    (r"nicht befahrbar", "not drivable"),
+    (r"in Bau", "under construction"),
+    (r"Galerie", "gallery"),
+    (r"Treppe", "steps"),
+    (r"Brücke", "bridge"),
+    (r"Platz", "square"),
+    (r"ohne WL", "no WL"),
+    (r"WL beidseitig", "WL both ends"),
+    (r"WL hinten", "WL rear"),
+    (r"WL vorn", "WL front"),
+    (r" k Symbol", " (no symbol)"),
+]
+
+
+def tr(s: str) -> str:
+    if s in EXACT:
+        return EXACT[s]
+    out = s
+    for pat, rep in TOKENS:
+        out = re.sub(pat, rep, out)
+    return out
+
+
+def tr_layer(name: str) -> str:
+    m = re.match(r"T(\d+)_DKM25_(.*)$", name)
+    if m:
+        return f"T{m.group(1)} {LAYERS.get(m.group(2), m.group(2))}"
+    return LAYERS.get(name, name)
+
+
+if __name__ == "__main__":
+    import sys
+    bad = []
+    for line in open(sys.argv[1], encoding="utf-8"):
+        de = line.rstrip("\n")
+        en = tr(de)
+        print(f"{de}\t{en}")
+        if re.search(r"[äöüÄÖÜß]|strasse|Strasse|gross|klein|Spur|Gleis|Seil|Bahn|bahn", en):
+            bad.append((de, en))
+    print("\nUNTRANSLATED-LOOKING:", *bad, sep="\n", file=sys.stderr)
